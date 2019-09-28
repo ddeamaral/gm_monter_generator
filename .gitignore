@@ -3,3 +3,4 @@ src/obj/*
 test/gm_monster_test/obj/*
 .vscode/*
 test/obj/*
+test/bin/*

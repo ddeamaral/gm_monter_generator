@@ -1,0 +1,8 @@
+4 Level 5 players, Deadly difficulty
+4 x 1100 (deadly per player) = 4400
+
+(1x CR0) 10xp * 1 = 10
+
+is 10 between 4400 (min for difficult) and 8600 (rank cap) = false
+
+(2x CR0) 20xp
