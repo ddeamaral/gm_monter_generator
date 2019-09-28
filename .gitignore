@@ -1,6 +1,5 @@
-.vscode/launch.json
-.vscode/tasks.json
-src/obj/gm_monster.csproj.nuget.g.targets
 src/bin/*
 src/obj/*
 test/gm_monster_test/obj/*
+.vscode/*
+test/obj/*
