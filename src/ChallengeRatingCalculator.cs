@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace src
 {
@@ -47,9 +49,9 @@ namespace src
 
         public bool GenerateChallengeRatingOutcomes()
         {
-            var rankMaximum = RankMapping[AssumedPartyRank].RankMaxiumumAdjustedExperience;
+            var rankMaximum = Constants.RankMapping[AssumedPartyRank].RankMaxiumumAdjustedExperience;
             var minimumDifficultyExperience = Players
-                    .Select(player => Difficulty == Difficulty.Deadly ? RankMapping[player].Deadly : RankMapping[player].Hard)
+                    .Select(player => Difficulty == Difficulty.Deadly ? Constants.RankMapping[player].Deadly : Constants.RankMapping[player].Hard)
                     .Sum();
 
             GenerateEncounters(minimumDifficultyExperience, rankMaximum);
@@ -60,6 +62,16 @@ namespace src
         public void GenerateEncounters(int minimumAdjustedExperience, int maximumAdjustedExperience)
         {
             // Get all possible combinations
+            var permutations = GetAllCRPermutations();
+
+            using (var writer = new StreamWriter("/home/castiel/programming/gm_monter_generator/test.txt"))
+            {
+                foreach (var permutation in permutations)
+                {
+                    writer.WriteLine(permutation);
+                }
+            }
+
 
             // Evaluate the adjusted experience
 
@@ -67,45 +79,77 @@ namespace src
 
         }
 
+        private HashSet<string> GetAllCRPermutations()
+        {
+            var permutations = new HashSet<string>();
+            var sb = new StringBuilder();
 
+            foreach (var BaseChallengeRating in Constants.ChallengeRatings.Keys)
+            {
+                var ci = Constants.ChallengeRatings.Keys.ToList().IndexOf(BaseChallengeRating);
 
-        private readonly Dictionary<string, int> challengeRatings = new Dictionary<string, int>() {
-                { "CR0", 10 },
-                { "CR1/8", 25 },
-                { "CR1/4", 50 },
-                { "CR1/2", 100 },
-                { "CR1", 200 },
-                { "CR2", 450 },
-                { "CR3", 700 },
-                { "CR4", 1_100 },
-                { "CR5", 1_800 },
-                { "CR6", 2_300 },
-                { "CR7", 2_900 },
-                { "CR8", 3_900 },
-                { "CR9", 5_000 },
-                { "CR10", 5_900 },
-                { "CR11", 7_200 },
-                { "CR12", 8_400 },
-                { "CR13", 10_000 },
-                { "CR14", 11_500 },
-                { "CR15", 13_000 },
-                { "CR16", 15_500 },
-                { "CR17", 18_000 },
-                { "CR18", 20_000 },
-                { "CR19", 22_000 },
-                { "CR20", 25_000 },
-                { "CR21", 30_000 },
-                { "CR22", 41_000 },
-                { "CR23", 50_000 },
-                { "CR24", 62_000 },
-                { "CR25", 75_000 },
-                { "CR26", 90_000 },
-                { "CR27", 105_000 },
-                { "CR28", 120_000 },
-                { "CR29", 135_000 },
-                { "CR30", 155_000 }
-            };
+                for (int i = 1; i < 13; i++)
+                {
+                    sb.Append($"{BaseChallengeRating} {i} ");
+                    var result = sb.ToString();
+                    permutations.Add(result);
+                    sb.Clear();
 
+                    sb.Append($"{BaseChallengeRating} {i} ");
+
+                    for (int x = 0; x < Constants.ChallengeRatings.Keys.ToArray().Length; x++)
+                    {
+
+                    }
+
+                    foreach (var challengeRating in Constants.ChallengeRatings.Keys.ToList().Skip(ci + 1))
+                    {
+                        sb.Append($"{challengeRating} {i} ");
+                        permutations.Add(sb.ToString());
+                    }
+                    sb.Clear();
+                }
+            }
+
+            return permutations;
+        }
+
+        public static List<List<string>> permutations(List<string> es)
+        {
+
+            List<List<string>> permutations = new List<List<string>>();
+
+            if (es is null || !es.Any())
+            {
+                return permutations;
+            }
+
+            // We add the first element
+            permutations.Add(new List<string>(new List<string>() { es.First() }));
+
+            // Then, for all elements e in es (except from the first)
+            for (int i = 1, len = es.Count; i < len; i++)
+            {
+                string e = es.ElementAt(i);
+
+                // We take remove each list l from 'permutations'
+                for (int j = permutations.Count - 1; j >= 0; j--)
+                {
+                    List<string> l = permutations.ElementAt(j);
+                    permutations.RemoveAt(j);
+                    //.remove(j);
+
+                    // And adds a copy of l, with e inserted at index k for each position k in l
+                    for (int k = l.Count; k >= 0; k--)
+                    {
+                        List<string> ts2 = new List<string>();
+                        ts2.Insert(k, e);
+                        permutations.Add(ts2);
+                    }
+                }
+            }
+            return permutations;
+        }
 
         private decimal Multiplier(int numberOfMonsters)
         {
@@ -128,28 +172,7 @@ namespace src
             }
         }
 
-        private readonly Dictionary<int, ExperienceThreshold> RankMapping = new Dictionary<int, ExperienceThreshold>()
-        {
-            { 2, new ExperienceThreshold(150, 200, 300, 600) },
-            { 3, new ExperienceThreshold(225, 400, 800, 3_600) },
-            { 4, new ExperienceThreshold(375, 500, 800, 3_600) },
-            { 5, new ExperienceThreshold(750, 1_100, 3600, 8600) },
-            { 6, new ExperienceThreshold(900, 1_400, 3600, 8600) },
-            { 7, new ExperienceThreshold(1_100, 1_700, 3600, 8600) },
-            { 8, new ExperienceThreshold(1_400, 2_100, 3600, 8600) },
-            { 9, new ExperienceThreshold(1_600, 2_400, 8_600, 20_800) },
-            { 10, new ExperienceThreshold(1_900, 2_800, 8_600, 20_800) },
-            { 11, new ExperienceThreshold(2_400, 3_600, 8_600, 20_800) },
-            { 12, new ExperienceThreshold(3_000, 4_500, 8_600, 20_800) },
-            { 13, new ExperienceThreshold(3_400, 5_100, 8_600, 20_800) },
-            { 14, new ExperienceThreshold(3_800, 5_700, 20_800, 38_400) },
-            { 15, new ExperienceThreshold(4_300, 6_400, 20_800, 38_400) },
-            { 16, new ExperienceThreshold(4_800, 7_200, 20_800, 38_400) },
-            { 17, new ExperienceThreshold(5_900, 8_800, 38_400, 56_200) },
-            { 18, new ExperienceThreshold(6_300, 9_500, 38_400, 56_200) },
-            { 19, new ExperienceThreshold(7_300, 10_900, 38_400, 56_200) },
-            { 20, new ExperienceThreshold(8_500, 12_700, 56_000, 92_000) }
-        };
+
 
         public decimal EvaluateAXP(Dictionary<string, int> monsters)
         {
@@ -157,7 +180,7 @@ namespace src
 
             foreach (var monster in monsters)
             {
-                total += monster.Value * challengeRatings[monster.Key];
+                total += monster.Value * Constants.ChallengeRatings[monster.Key];
             }
 
             return total * Multiplier(monsters.Values.Sum());
