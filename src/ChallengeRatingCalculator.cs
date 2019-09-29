@@ -59,39 +59,15 @@ namespace src
 
         public void GenerateEncounters(int minimumAdjustedExperience, int maximumAdjustedExperience)
         {
-            // Figure out boundaries for one cr level
-            var sameCREncounters = GetAllSameCRLevels(minimumAdjustedExperience, maximumAdjustedExperience, "CR0");
+            // Get all possible combinations
 
-            // Figure out combinations of all mixed cr levels
+            // Evaluate the adjusted experience
 
-            // Merge them
+            // Filter them by the range
 
         }
 
-        public Dictionary<string, int> GetAllSameCRLevels(int minimumAdjustedExperience, int maximumAdjustedExperience, string challengeRating)
-        {
-            var exceeded = false;
-            var monsterCount = 0;
-            var monsters = new Dictionary<string, int>();
 
-            while (!exceeded)
-            {
-                monsterCount++;
-
-                var adjustedExperience = EvaluateAXP(new Dictionary<string, int>() { { challengeRating, monsterCount } });
-                Console.WriteLine($"{challengeRating} x{monsterCount} = {adjustedExperience}xp");
-
-                if (adjustedExperience >= minimumAdjustedExperience && adjustedExperience <= maximumAdjustedExperience)
-                {
-                    Console.WriteLine("Added");
-                    monsters.Add($"{challengeRating} x{monsterCount}", monsterCount);
-                }
-
-                exceeded = adjustedExperience > maximumAdjustedExperience;
-            }
-
-            return monsters;
-        }
 
         private readonly Dictionary<string, int> challengeRatings = new Dictionary<string, int>() {
                 { "CR0", 10 },
