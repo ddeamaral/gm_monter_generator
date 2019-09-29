@@ -62,11 +62,11 @@ namespace src
         public void GenerateEncounters(int minimumAdjustedExperience, int maximumAdjustedExperience)
         {
             // Get all possible combinations
-            var permutations = GetAllCRPermutations();
+            var x = GetAllCRPermutations();
 
             using (var writer = new StreamWriter("/home/castiel/programming/gm_monter_generator/test.txt"))
             {
-                foreach (var permutation in permutations)
+                foreach (var permutation in x)
                 {
                     writer.WriteLine(permutation);
                 }
@@ -97,11 +97,6 @@ namespace src
 
                     sb.Append($"{BaseChallengeRating} {i} ");
 
-                    for (int x = 0; x < Constants.ChallengeRatings.Keys.ToArray().Length; x++)
-                    {
-
-                    }
-
                     foreach (var challengeRating in Constants.ChallengeRatings.Keys.ToList().Skip(ci + 1))
                     {
                         sb.Append($"{challengeRating} {i} ");
@@ -114,42 +109,6 @@ namespace src
             return permutations;
         }
 
-        public static List<List<string>> permutations(List<string> es)
-        {
-
-            List<List<string>> permutations = new List<List<string>>();
-
-            if (es is null || !es.Any())
-            {
-                return permutations;
-            }
-
-            // We add the first element
-            permutations.Add(new List<string>(new List<string>() { es.First() }));
-
-            // Then, for all elements e in es (except from the first)
-            for (int i = 1, len = es.Count; i < len; i++)
-            {
-                string e = es.ElementAt(i);
-
-                // We take remove each list l from 'permutations'
-                for (int j = permutations.Count - 1; j >= 0; j--)
-                {
-                    List<string> l = permutations.ElementAt(j);
-                    permutations.RemoveAt(j);
-                    //.remove(j);
-
-                    // And adds a copy of l, with e inserted at index k for each position k in l
-                    for (int k = l.Count; k >= 0; k--)
-                    {
-                        List<string> ts2 = new List<string>();
-                        ts2.Insert(k, e);
-                        permutations.Add(ts2);
-                    }
-                }
-            }
-            return permutations;
-        }
 
         private decimal Multiplier(int numberOfMonsters)
         {
