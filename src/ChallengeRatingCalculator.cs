@@ -51,8 +51,8 @@ namespace src
         {
             var rankMaximum = Constants.RankMapping[AssumedPartyRank].RankMaxiumumAdjustedExperience;
             var minimumDifficultyExperience = Players
-                    .Select(player => Difficulty == Difficulty.Deadly ? Constants.RankMapping[player].Deadly : Constants.RankMapping[player].Hard)
-                    .Sum();
+                .Select(player => Difficulty == Difficulty.Deadly ? Constants.RankMapping[player].Deadly : Constants.RankMapping[player].Hard)
+                .Sum();
 
             GenerateEncounters(minimumDifficultyExperience, rankMaximum);
 
@@ -72,11 +72,36 @@ namespace src
                 }
             }
 
-
             // Evaluate the adjusted experience
+            var permutations = x.Select(p => p.Split(' ', StringSplitOptions.RemoveEmptyEntries)).ToArray();
+
+            var formatted = new List<Tuple<Dictionary<string, int>, decimal>>();
+
+            foreach (var permutation in permutations)
+            {
+                var encounter = new Dictionary<string, int>();
+
+                for (int i = 0; i < permutation.Length; i++)
+                {
+                    encounter.Add(permutation[i], int.Parse(permutation[i + 1]));
+                    i++;
+                }
+
+                var adjustedExperience = EvaluateAXP(encounter);
+                var validEncounter = adjustedExperience >= minimumAdjustedExperience && adjustedExperience <= maximumAdjustedExperience;
+                if (validEncounter)
+                    formatted.Add(new Tuple<Dictionary<string, int>, decimal>(encounter, adjustedExperience));
+            }
 
             // Filter them by the range
-
+            using (var writer = new StreamWriter("/home/castiel/programming/gm_monter_generator/output.txt"))
+            {
+                foreach (var p in formatted)
+                {
+                    var result = string.Join(',', p.Item1.Select(kvp => $"{kvp.Key} x{kvp.Value}").ToArray());
+                    writer.WriteLine(result);
+                }
+            }
         }
 
         private HashSet<string> GetAllCRPermutations()
@@ -95,12 +120,18 @@ namespace src
                     permutations.Add(result);
                     sb.Clear();
 
-                    sb.Append($"{BaseChallengeRating} {i} ");
-
-                    foreach (var challengeRating in Constants.ChallengeRatings.Keys.ToList().Skip(ci + 1))
+                    foreach (var challengeRating in Constants.ChallengeRatings.Keys)
                     {
-                        sb.Append($"{challengeRating} {i} ");
-                        permutations.Add(sb.ToString());
+                        if (challengeRating == BaseChallengeRating)
+                            continue;
+                        // sb.Append($"{BaseChallengeRating} {i} ");
+
+                        for (int j = 1; j < 13; j++)
+                        {
+                            sb.Append($"{BaseChallengeRating} {i} {challengeRating} {j} ");
+                            permutations.Add(sb.ToString());
+                            sb.Clear();
+                        }
                     }
                     sb.Clear();
                 }
@@ -108,7 +139,6 @@ namespace src
 
             return permutations;
         }
-
 
         private decimal Multiplier(int numberOfMonsters)
         {
@@ -130,8 +160,6 @@ namespace src
                     return 1m;
             }
         }
-
-
 
         public decimal EvaluateAXP(Dictionary<string, int> monsters)
         {
