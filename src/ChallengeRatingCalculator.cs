@@ -89,7 +89,7 @@ namespace src
             // run them all through the adjxp calculator
             var validEncounters = encounters
                 .Select(encounter => new Encounter { Monsters = encounter, AdjustedExperience = EvaluateAXP(encounter) })
-                .Where(encounter => encounter.AdjustedExperience >= minimumAdjustedExperience && encounter.AdjustedExperience <= maximumAdjustedExperience);
+                .Where(encounter => encounter.Monsters.Values.Sum() <= 12 && encounter.AdjustedExperience >= minimumAdjustedExperience && encounter.AdjustedExperience <= maximumAdjustedExperience);
 
             // format strings
             var output = GenerateMacroScript(validEncounters.OrderBy(encounter => encounter.AdjustedExperience).ToArray());
@@ -103,11 +103,11 @@ namespace src
         private string GenerateMacroScript(Encounter[] validEncounters)
         {
             var macroText = new StringBuilder();
-            macroText.AppendLine("!import-table --dylans-incredible-encounter-generator");
+            macroText.AppendLine("!import-table --DylansIncrdibleMonsterGenerator --show");
 
             for (int i = 0; i < validEncounters.Length; i++)
             {
-                macroText.AppendLine($"!import-table-item --test-encounter-item-{i + 1}-(ADJXP:{validEncounters[i].AdjustedExperience}) --{string.Join(' ', validEncounters[i].Monsters.Where(m => m.Value > 0).Select(m => $"{m.Key}x{Math.Floor((decimal)m.Value)}"))} --1");
+                macroText.AppendLine($"!import-table-item --DylansIncrdibleMonsterGenerator --{string.Join(' ', validEncounters[i].Monsters.Where(m => m.Value > 0).Select(m => $"{m.Key}x{Math.Floor((decimal)m.Value)}"))} --1 --");
             }
 
             return macroText.ToString();

@@ -72,7 +72,7 @@ namespace gm_monster
             var moveForward = false;
 #if RELEASE
             var response = Console.Read();
-            moveForward = Convert.ToChar(response) != 'N';
+            moveForward = Convert.ToChar(response) != 'N' || Convert.ToChar(response) != 'n';
 #endif
 
 
