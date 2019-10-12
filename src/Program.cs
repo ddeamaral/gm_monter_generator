@@ -69,11 +69,21 @@ namespace gm_monster
             Console.WriteLine($"Rank: {rank}");
             Console.WriteLine($"Number of players: {players.Count} ({string.Join(' ', players.Select(p => $"Lv{p}"))})");
             Console.WriteLine("Press any key to continue...or press N to cancel");
-            var response = Console.ReadKey();
+            var moveForward = false;
+#if RELEASE
+            var response = Console.Read();
+            moveForward = Convert.ToChar(response) != 'N';
+#endif
+
+
+
+#if DEBUG
+            moveForward = true;
+#endif
 
             try
             {
-                if (response.Key != ConsoleKey.N)
+                if (moveForward)
                 {
                     var challengeRatingCalculator = new ChallengeRatingCalculator(difficulty, players, rank);
                     var result = challengeRatingCalculator.GenerateChallengeRatingOutcomes();
@@ -91,7 +101,7 @@ namespace gm_monster
             catch (System.Exception e)
             {
                 Console.WriteLine($"Something went wrong, send the file error.txt to Dylan");
-                using (var writer = new StreamWriter(Constants.OutputPath("error.txt")))
+                using (var writer = new StreamWriter(System.IO.File.OpenWrite(Constants.OutputPath("error.txt"))))
                 {
                     writer.WriteLine($"Message: {e.Message}");
                     writer.WriteLine($"Stack Trace: {e.StackTrace}");

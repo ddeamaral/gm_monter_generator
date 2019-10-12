@@ -9,7 +9,7 @@ namespace src
 
         internal static string OutputPath(string filename = "")
         {
-            return Path.Combine(Environment);
+            return Path.Combine(Environment, filename);
         }
 
         // CR0 12 CR1/8 12 CR1/4
