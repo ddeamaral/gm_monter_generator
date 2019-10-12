@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 
 namespace src
 {
@@ -71,88 +70,19 @@ namespace src
         public void GenerateEncounters(int minimumAdjustedExperience, int maximumAdjustedExperience)
         {
             // Get all possible combinations
-            //var x = GetAllCRPermutations();
             var x = UsingWhile(new Challenge { cr = "CR0", quantity = 1 });
-            //var x = GetChallenges();
 
-            using (var writer = new StreamWriter("/home/castiel/programming/gm_monter_generator/test.txt"))
+
+            using (var writer = new StreamWriter(@"D:\Development\VSCode\gm_monter_generator\test.txt"))
             {
                 foreach (var perm in x)
                 {
-                    writer.WriteLine(String.Join(' ', perm.Select(kvp => $"{kvp.Key} {kvp.Value}")));
+                    writer.WriteLine(String.Join(' ', perm));
                 }
             }
-
-            // Evaluate the adjusted experience
-            // var permutations = x.Select(p => p.Split(' ', StringSplitOptions.RemoveEmptyEntries)).ToArray();
-
-            // var formatted = new List<Tuple<Dictionary<string, int>, decimal>>();
-
-            // foreach (var permutation in permutations)
-            // {
-            //     var encounter = new Dictionary<string, int>();
-
-            //     for (int i = 0; i < permutation.Length; i++)
-            //     {
-            //         encounter.Add(permutation[i], int.Parse(permutation[i + 1]));
-            //         i++;
-            //     }
-
-            //     var adjustedExperience = EvaluateAXP(encounter);
-            //     var validEncounter = adjustedExperience >= minimumAdjustedExperience && adjustedExperience <= maximumAdjustedExperience;
-            //     if (validEncounter)
-            //         formatted.Add(new Tuple<Dictionary<string, int>, decimal>(encounter, adjustedExperience));
-            // }
-
-            // // Filter them by the range
-            // using (var writer = new StreamWriter("/home/castiel/programming/gm_monter_generator/output.txt"))
-            // {
-            //     foreach (var p in formatted)
-            //     {
-            //         var result = string.Join(',', p.Item1.Select(kvp => $"{kvp.Key} x{kvp.Value}").ToArray());
-            //         writer.WriteLine(result);
-            //     }
-            // }
         }
 
-        private HashSet<string> GetAllCRPermutations()
-        {
-            var permutations = new HashSet<string>();
-            var sb = new StringBuilder();
-
-            foreach (var BaseChallengeRating in Constants.ChallengeRatings.Keys)
-            {
-                var ci = Constants.ChallengeRatings.Keys.ToList().IndexOf(BaseChallengeRating);
-
-                for (int i = 1; i < 13; i++)
-                {
-                    sb.Append($"{BaseChallengeRating} {i} ");
-                    var result = sb.ToString();
-                    permutations.Add(result);
-                    sb.Clear();
-
-                    foreach (var challengeRating in Constants.ChallengeRatings.Keys)
-                    {
-                        if (challengeRating == BaseChallengeRating)
-                            continue;
-                        // sb.Append($"{BaseChallengeRating} {i} ");
-
-                        for (int j = 1; j < 13; j++)
-                        {
-                            sb.Append($"{BaseChallengeRating} {i}");
-                            permutations.Add(sb.ToString());
-                            sb.Clear();
-
-                        }
-                    }
-                    sb.Clear();
-                }
-            }
-
-            return permutations;
-        }
-
-        private List<Dictionary<string, int>> UsingWhile(Challenge currentCR)
+        private HashSet<string> UsingWhile(Challenge currentCR)
         {
             // If we're at CR 1/8, we want to start at CR 1/4
             var startingIndex = Constants.ChallengeRatings.Keys.ToList().IndexOf(currentCR.cr);
@@ -170,7 +100,7 @@ namespace src
             // We'll set this ourselves
             var done = false;
 
-            var results = new List<Dictionary<string, int>>();
+            var results = new HashSet<Dictionary<string, int>>();
             var line = new Dictionary<string, int>();
 
             var challengeRatingsList = Constants.ChallengeRatings.Keys.ToList();
@@ -187,16 +117,18 @@ namespace src
                     if (line.ContainsKey(challengeRating))
                     {
                         line[challengeRating] = i <= iterationIndex ? iterations : iterations - 1;
+                        results.Add(new Dictionary<string, int>(line));
 
-                        if (line.Values.Sum() == 34 * iterations)
+                        if (line.Values.Sum() == 33 * iterations + currentCR.quantity)
                         {
                             iterations++;
                         }
+
                         continue;
                     }
 
                     // Add for the first time
-                    line.Add(challengeRating, iterations);
+                    line.Add(challengeRating, iterations - 1);
                 }
 
                 // Add to the list of permutations
@@ -205,62 +137,13 @@ namespace src
                 // increment
                 iterationIndex++;
 
-                done = results.Last().Values.All(q => q == 12);
+                done = results.Last().All(q => q.Value == 12 || q.Key == currentCR.cr);
             }
 
-            return results;
+            return new HashSet<string>(results.Select(dict => Stringified(dict)));
         }
 
-        private List<List<Challenge>> GetChallenges()
-        {
-            var results = new List<List<Challenge>>();
-
-            foreach (var challengeRating in Constants.ChallengeRatings.Keys)
-            {
-                var outerIndex = Constants.ChallengeRatings.Keys.ToList().IndexOf(challengeRating);
-
-                for (int i = 1; i < 13; i++)
-                {
-                    var temp = new List<Challenge>() { new Challenge { cr = challengeRating, quantity = i } };
-                    results.Add(temp);
-
-                    // Add CR1/8 1 to temp
-                    // get last challenge element
-                    // set quantity to (local last challenge element)quantity + 1
-                    // Add CR1/8 2 to temp
-                    // update last 
-                    // Add CR1/4 1
-
-                    var temp2 = new List<Challenge>();
-
-                    foreach (var horizontalRaints in Constants.ChallengeRatings.Keys.Skip(outerIndex + 1))
-                    {
-                        temp2.Add(new Challenge { cr = horizontalRaints, quantity = 1 });
-
-                        for (int j = 1; j < 12; j++)
-                        {
-                            var last = temp2.Last();
-                            last.quantity = j + 1;
-                            temp2.Add(last);
-                        }
-                    }
-
-                    // var temp2 = new List<Challenge>(temp);
-                    // for (int j = 1; j < 13; j++)
-                    // {
-                    //     foreach (var horizontalRatings in Constants.ChallengeRatings.Keys.Skip(outerIndex + 1))
-                    //     {
-
-                    //         temp2.Add(new Challenge { cr = horizontalRatings, quantity = j });
-                    //     }
-                    //     results.Add(temp2);
-                    // }
-
-                }
-            }
-
-            return results;
-        }
+        private string Stringified(Dictionary<string, int> value) => string.Join(' ', value.Select(kvp => $"{kvp.Key} {kvp.Value}"));
 
         private decimal Multiplier(int numberOfMonsters)
         {
