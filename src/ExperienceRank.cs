@@ -1,8 +1,8 @@
 namespace src
 {
-    public class ExperienceThreshold
+    internal class ExperienceThreshold
     {
-        public ExperienceThreshold(int Hard, int Deadly, int rankMinimumAdjustedExperience, int rankMaxiumumAdjustedExperience)
+        internal ExperienceThreshold(int Hard, int Deadly, int rankMinimumAdjustedExperience, int rankMaxiumumAdjustedExperience)
         {
             this.Hard = Hard;
             this.Deadly = Deadly;
@@ -10,12 +10,12 @@ namespace src
             this.RankMaxiumumAdjustedExperience = rankMaxiumumAdjustedExperience;
         }
 
-        public readonly int Hard;
+        internal readonly int Hard;
 
-        public readonly int Deadly;
+        internal readonly int Deadly;
 
-        public readonly int RankMinimumAdjustedExperience;
+        internal readonly int RankMinimumAdjustedExperience;
 
-        public readonly int RankMaxiumumAdjustedExperience;
+        internal readonly int RankMaxiumumAdjustedExperience;
     }
 }
