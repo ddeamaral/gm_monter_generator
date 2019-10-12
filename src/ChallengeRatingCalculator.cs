@@ -177,6 +177,9 @@ namespace src
 
             while (!done)
             {
+                if (!line.ContainsKey(currentCR.cr))
+                    line.Add(currentCR.cr, currentCR.quantity);
+
                 for (int i = challengeRatingsList.IndexOf(currentCR.cr) + 1; i < 34; i++)
                 {
                     var challengeRating = challengeRatingsList[i];
@@ -185,7 +188,7 @@ namespace src
                     {
                         line[challengeRating] = i <= iterationIndex ? iterations : iterations - 1;
 
-                        if (line.Values.Sum() == 33 * iterations)
+                        if (line.Values.Sum() == 34 * iterations)
                         {
                             iterations++;
                         }
@@ -197,7 +200,7 @@ namespace src
                 }
 
                 // Add to the list of permutations
-                results.Add(line);
+                results.Add(new Dictionary<string, int>(line));
 
                 // increment
                 iterationIndex++;
