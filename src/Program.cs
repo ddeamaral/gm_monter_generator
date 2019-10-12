@@ -23,7 +23,7 @@ namespace gm_monster
                 {
                     if (playerLevel < 1 || playerLevel > 20)
                     {
-                        using(TextWriter writer = new StreamWriter(Console.OpenStandardError()))
+                        using (TextWriter writer = new StreamWriter(Console.OpenStandardError()))
                         {
                             writer.WriteLine($"Unrecognized flag {args[i]}");
                         }
@@ -45,16 +45,17 @@ namespace gm_monster
                 }
                 else
                 {
-                    using(TextWriter writer = new StreamWriter(Console.OpenStandardError()))
+                    using (TextWriter writer = new StreamWriter(Console.OpenStandardError()))
                     {
                         writer.WriteLine($"Unrecognized flag {args[i]}");
+                        return;
                     }
                 }
             }
 
             if (players.Count == 0)
             {
-                using(TextWriter writer = new StreamWriter(Console.OpenStandardError()))
+                using (TextWriter writer = new StreamWriter(Console.OpenStandardError()))
                 {
                     writer.WriteLine($"You must have at least one player. Use the -p flag, followed by a number, like so...");
                     writer.WriteLine("whatever.exe -p 3 -p 4 -p 4 -p 3");
@@ -67,27 +68,30 @@ namespace gm_monster
             Console.WriteLine($"Difficulty: {(difficulty == Difficulty.Hard ? "Hard" : "Deadly")}");
             Console.WriteLine($"Rank: {rank}");
             Console.WriteLine($"Number of players: {players.Count} ({string.Join(' ', players.Select(p => $"Lv{p}"))})");
-            Console.WriteLine("Press any key to continue...");
-            Console.ReadKey();
+            Console.WriteLine("Press any key to continue...or press N to cancel");
+            var response = Console.ReadKey();
 
             try
             {
-                var challengeRatingCalculator = new ChallengeRatingCalculator(difficulty, players, rank);
-                var result = challengeRatingCalculator.GenerateChallengeRatingOutcomes();
+                if (response.Key != ConsoleKey.N)
+                {
+                    var challengeRatingCalculator = new ChallengeRatingCalculator(difficulty, players, rank);
+                    var result = challengeRatingCalculator.GenerateChallengeRatingOutcomes();
 
-                if (result)
-                {
-                    Console.WriteLine("Alrighty, copy your macro in macro.txt, and import it into roll20.");
-                }
-                else
-                {
-                    Console.WriteLine("Wow, you managed to break it somehow, send Dylan the exact command you ran.");
+                    if (result)
+                    {
+                        Console.WriteLine("Alrighty, copy your macro in macro.txt, and import it into roll20.");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Wow, you managed to break it somehow, send Dylan the exact command you ran.");
+                    }
                 }
             }
             catch (System.Exception e)
             {
                 Console.WriteLine($"Something went wrong, send the file error.txt to Dylan");
-                using(var writer = new StreamWriter(Constants.OutputPath()))
+                using (var writer = new StreamWriter(Constants.OutputPath("error.txt")))
                 {
                     writer.WriteLine($"Message: {e.Message}");
                     writer.WriteLine($"Stack Trace: {e.StackTrace}");

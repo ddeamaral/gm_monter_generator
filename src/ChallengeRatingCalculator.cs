@@ -94,7 +94,7 @@ namespace src
             // format strings
             var output = GenerateMacroScript(validEncounters.OrderBy(encounter => encounter.AdjustedExperience).ToArray());
 
-            using(var streamWriter = new StreamWriter(@"D:\Development\srctrl\gm_monter_generator\macro.txt"))
+            using (var streamWriter = new StreamWriter(Constants.OutputPath("macro.txt")))
             {
                 streamWriter.Write(output);
             }
@@ -107,7 +107,7 @@ namespace src
 
             for (int i = 0; i < validEncounters.Length; i++)
             {
-                macroText.AppendLine($"!import-table-item --test-encounter-item-{i + 1}-(ADJXP:{validEncounters[i].AdjustedExperience}) --{string.Join(' ', validEncounters[i].Monsters.Where(m => m.Value > 0).Select(m => $"{m.Key}x{Math.Floor((decimal) m.Value)}"))} --1");
+                macroText.AppendLine($"!import-table-item --test-encounter-item-{i + 1}-(ADJXP:{validEncounters[i].AdjustedExperience}) --{string.Join(' ', validEncounters[i].Monsters.Where(m => m.Value > 0).Select(m => $"{m.Key}x{Math.Floor((decimal)m.Value)}"))} --1");
             }
 
             return macroText.ToString();
@@ -207,17 +207,17 @@ namespace src
         {
             switch (numberOfMonsters)
             {
-                case int i when(numberOfMonsters == 1):
+                case int i when (numberOfMonsters == 1):
                     return 1m;
-                case int i when(numberOfMonsters == 2):
+                case int i when (numberOfMonsters == 2):
                     return 1.5m;
-                case int i when(numberOfMonsters >= 3 && numberOfMonsters <= 6):
+                case int i when (numberOfMonsters >= 3 && numberOfMonsters <= 6):
                     return 2m;
-                case int i when(numberOfMonsters >= 7 && numberOfMonsters <= 10):
+                case int i when (numberOfMonsters >= 7 && numberOfMonsters <= 10):
                     return 2.5m;
-                case int i when(numberOfMonsters >= 11 && numberOfMonsters <= 14):
+                case int i when (numberOfMonsters >= 11 && numberOfMonsters <= 14):
                     return 3m;
-                case int i when(numberOfMonsters >= 15):
+                case int i when (numberOfMonsters >= 15):
                     return 4m;
                 default:
                     return 1m;
