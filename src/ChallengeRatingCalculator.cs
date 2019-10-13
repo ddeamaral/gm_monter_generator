@@ -94,7 +94,7 @@ namespace src
             // format strings
             var output = GenerateMacroScript(validEncounters.OrderBy(encounter => encounter.AdjustedExperience).ToArray());
 
-            using (var streamWriter = new StreamWriter(Constants.OutputPath("macro.txt")))
+            using(var streamWriter = new StreamWriter(Constants.OutputPath("macro.txt")))
             {
                 streamWriter.Write(output);
             }
@@ -103,11 +103,11 @@ namespace src
         private string GenerateMacroScript(Encounter[] validEncounters)
         {
             var macroText = new StringBuilder();
-            macroText.AppendLine("!import-table --DylansIncrdibleMonsterGenerator --show");
+            macroText.AppendLine("!import-table --DylansIncredibleMonsterGenerator --hide");
 
             for (int i = 0; i < validEncounters.Length; i++)
             {
-                macroText.AppendLine($"!import-table-item --DylansIncrdibleMonsterGenerator --{string.Join(' ', validEncounters[i].Monsters.Where(m => m.Value > 0).Select(m => $"{m.Key}x{Math.Floor((decimal)m.Value)}"))} --1 --");
+                macroText.AppendLine($"!import-table-item --DylansIncredibleMonsterGenerator --ADJXP: {validEncounters[i].AdjustedExperience} Monsters:{string.Join(' ', validEncounters[i].Monsters.Where(m => m.Value > 0).Select(m => $"{m.Key}x{Math.Floor((decimal) m.Value)}"))} --1 --");
             }
 
             return macroText.ToString();
@@ -168,7 +168,7 @@ namespace src
                 if (!line.ContainsKey(currentCR.cr))
                     line.Add(currentCR.cr, currentCR.quantity);
 
-                for (int i = challengeRatingsList.IndexOf(currentCR.cr) + 1; i < 34; i++)
+                for (int i = challengeRatingsList.IndexOf(currentCR.cr) + 1; i < 32; i++)
                 {
                     var challengeRating = challengeRatingsList[i];
 
@@ -207,17 +207,17 @@ namespace src
         {
             switch (numberOfMonsters)
             {
-                case int i when (numberOfMonsters == 1):
+                case int i when(numberOfMonsters == 1):
                     return 1m;
-                case int i when (numberOfMonsters == 2):
+                case int i when(numberOfMonsters == 2):
                     return 1.5m;
-                case int i when (numberOfMonsters >= 3 && numberOfMonsters <= 6):
+                case int i when(numberOfMonsters >= 3 && numberOfMonsters <= 6):
                     return 2m;
-                case int i when (numberOfMonsters >= 7 && numberOfMonsters <= 10):
+                case int i when(numberOfMonsters >= 7 && numberOfMonsters <= 10):
                     return 2.5m;
-                case int i when (numberOfMonsters >= 11 && numberOfMonsters <= 14):
+                case int i when(numberOfMonsters >= 11 && numberOfMonsters <= 14):
                     return 3m;
-                case int i when (numberOfMonsters >= 15):
+                case int i when(numberOfMonsters >= 15):
                     return 4m;
                 default:
                     return 1m;
