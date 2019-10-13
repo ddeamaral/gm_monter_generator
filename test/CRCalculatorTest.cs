@@ -7,7 +7,7 @@ namespace gm_monster_test
     internal class CRCalculatorTest
     {
         [Test]
-        internal void GivenFiveLevelFivePlayersWithDeadlyRank_WhenInvoked_ThenGeneratesAllPossibleChallengeRatingOutcomes()
+        public void GivenFiveLevelFivePlayersWithDeadlyRank_WhenInvoked_ThenGeneratesAllPossibleChallengeRatingOutcomes()
         {
             // Arrange
             var players = new List<int>() { 5, 5, 5, 5, 5 };
@@ -25,7 +25,7 @@ namespace gm_monster_test
         }
 
         [Test]
-        internal void GivenFivePlayers_WhenCalculated_ReturnsExpectedAXP()
+        public void GivenFivePlayers_WhenCalculated_ReturnsExpectedAXP()
         {
             // Arrange
             var players = new List<int>() { 5, 5, 5, 5 };
