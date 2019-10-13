@@ -1,9 +1,27 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text;
 
 namespace src
 {
+    struct Challenge
+    {
+        internal string cr;
+
+        internal int quantity;
+
+        public override string ToString() => $"{cr} {quantity}";
+    }
+
+    struct Encounter
+    {
+        internal Dictionary<string, int> Monsters;
+
+        internal decimal AdjustedExperience;
+    }
+
     public class ChallengeRatingCalculator
     {
         public ChallengeRatingCalculator(Difficulty difficulty, List<int> players, char Rank = 'F')
@@ -47,133 +65,164 @@ namespace src
 
         public bool GenerateChallengeRatingOutcomes()
         {
-            var rankMaximum = RankMapping[AssumedPartyRank].RankMaxiumumAdjustedExperience;
+            var rankMaximum = Constants.RankMapping[AssumedPartyRank].RankMaxiumumAdjustedExperience;
             var minimumDifficultyExperience = Players
-                    .Select(player => Difficulty == Difficulty.Deadly ? RankMapping[player].Deadly : RankMapping[player].Hard)
-                    .Sum();
+                .Select(player => Difficulty == Difficulty.Deadly ? Constants.RankMapping[player].Deadly : Constants.RankMapping[player].Hard)
+                .Sum();
+
+            Console.WriteLine("Calculated values for supplied player count:");
+            Console.WriteLine($"Adjusted Experience Range: ({minimumDifficultyExperience} adj xp) - ({rankMaximum} adj xp)");
 
             GenerateEncounters(minimumDifficultyExperience, rankMaximum);
 
             return true;
         }
 
-        public void GenerateEncounters(int minimumAdjustedExperience, int maximumAdjustedExperience)
+        internal void GenerateEncounters(int minimumAdjustedExperience, int maximumAdjustedExperience)
         {
-            // Figure out boundaries for one cr level
-            var sameCREncounters = GetAllSameCRLevels(minimumAdjustedExperience, maximumAdjustedExperience, "CR0");
+            // Get all possible combinations
+            var monsterMatchupPermutations = FetchAllStringifiedPermutations();
 
-            // Figure out combinations of all mixed cr levels
+            // Mutate into monster dictionaries
+            var encounters = TransmogrifyIntoEncounters(monsterMatchupPermutations);
 
-            // Merge them
+            // run them all through the adjxp calculator
+            var validEncounters = encounters
+                .Select(encounter => new Encounter { Monsters = encounter, AdjustedExperience = EvaluateAXP(encounter) })
+                .Where(encounter => encounter.Monsters.Values.Sum() <= 12 && encounter.AdjustedExperience >= minimumAdjustedExperience && encounter.AdjustedExperience <= maximumAdjustedExperience);
 
+            // format strings
+            var output = GenerateMacroScript(validEncounters.OrderBy(encounter => encounter.AdjustedExperience).ToArray());
+
+            using(var streamWriter = new StreamWriter(Constants.OutputPath("macro.txt")))
+            {
+                streamWriter.Write(output);
+            }
         }
 
-        public Dictionary<string, int> GetAllSameCRLevels(int minimumAdjustedExperience, int maximumAdjustedExperience, string challengeRating)
+        private string GenerateMacroScript(Encounter[] validEncounters)
         {
-            var exceeded = false;
-            var monsterCount = 0;
-            var monsters = new Dictionary<string, int>();
+            var macroText = new StringBuilder();
+            macroText.AppendLine("!import-table --DylansIncredibleMonsterGenerator --hide");
 
-            while (!exceeded)
+            for (int i = 0; i < validEncounters.Length; i++)
             {
-                monsterCount++;
-
-                var adjustedExperience = EvaluateAXP(new Dictionary<string, int>() { { challengeRating, monsterCount } });
-                Console.WriteLine($"{challengeRating} x{monsterCount} = {adjustedExperience}xp");
-
-                if (adjustedExperience >= minimumAdjustedExperience && adjustedExperience <= maximumAdjustedExperience)
-                {
-                    Console.WriteLine("Added");
-                    monsters.Add($"{challengeRating} x{monsterCount}", monsterCount);
-                }
-
-                exceeded = adjustedExperience > maximumAdjustedExperience;
+                macroText.AppendLine($"!import-table-item --DylansIncredibleMonsterGenerator --ADJXP: {validEncounters[i].AdjustedExperience} Monsters:{string.Join(' ', validEncounters[i].Monsters.Where(m => m.Value > 0).Select(m => $"{m.Key}x{Math.Floor((decimal) m.Value)}"))} --1 --");
             }
 
-            return monsters;
+            return macroText.ToString();
         }
 
-        private readonly Dictionary<string, int> challengeRatings = new Dictionary<string, int>() {
-                { "CR0", 10 },
-                { "CR1/8", 25 },
-                { "CR1/4", 50 },
-                { "CR1/2", 100 },
-                { "CR1", 200 },
-                { "CR2", 450 },
-                { "CR3", 700 },
-                { "CR4", 1_100 },
-                { "CR5", 1_800 },
-                { "CR6", 2_300 },
-                { "CR7", 2_900 },
-                { "CR8", 3_900 },
-                { "CR9", 5_000 },
-                { "CR10", 5_900 },
-                { "CR11", 7_200 },
-                { "CR12", 8_400 },
-                { "CR13", 10_000 },
-                { "CR14", 11_500 },
-                { "CR15", 13_000 },
-                { "CR16", 15_500 },
-                { "CR17", 18_000 },
-                { "CR18", 20_000 },
-                { "CR19", 22_000 },
-                { "CR20", 25_000 },
-                { "CR21", 30_000 },
-                { "CR22", 41_000 },
-                { "CR23", 50_000 },
-                { "CR24", 62_000 },
-                { "CR25", 75_000 },
-                { "CR26", 90_000 },
-                { "CR27", 105_000 },
-                { "CR28", 120_000 },
-                { "CR29", 135_000 },
-                { "CR30", 155_000 }
-            };
+        private IEnumerable<Dictionary<string, int>> TransmogrifyIntoEncounters(HashSet<string> monsterMatchupPermutations)
+        {
+            // split string into arrays ([CR0, 1, CR1/4, 1...])
+            var valueArrays = monsterMatchupPermutations.Select(monsterMatchup => monsterMatchup.Split(' ').ToArray());
 
+            // get a collection of anonymous types
+            var zippedUp = valueArrays.Select((item, index) => new { values = item.Where((cr, i) => i % 2 != 0), keys = item.Where((cr, i) => i % 2 == 0) });
+
+            return zippedUp.Select(matches => matches.keys.Zip(matches.values, (key, value) => new KeyValuePair<string, int>(key, int.Parse(value))).ToDictionary(kvp => kvp.Key, kvp => kvp.Value));
+        }
+
+        private HashSet<string> FetchAllStringifiedPermutations()
+        {
+            var allPossiblePermutations = new HashSet<string>();
+
+            foreach (var challengeRating in Constants.ChallengeRatings.Keys)
+            {
+                for (int i = 1; i < 13; i++)
+                {
+                    var horizontalPermutation = UsingWhile(new Challenge { cr = challengeRating, quantity = i });
+                    allPossiblePermutations.UnionWith(horizontalPermutation);
+                }
+            }
+
+            return allPossiblePermutations;
+        }
+
+        private HashSet<string> UsingWhile(Challenge currentCR)
+        {
+            // If we're at CR 1/8, we want to start at CR 1/4
+            var startingIndex = Constants.ChallengeRatings.Keys.ToList().IndexOf(currentCR.cr);
+
+            // We're at CR 30
+            if (startingIndex == Constants.ChallengeRatings.Keys.Count - 1)
+            {
+                return new HashSet<string>();
+            }
+
+            var iterationIndex = startingIndex;
+
+            var iterations = 1;
+
+            // We'll set this ourselves
+            var done = false;
+
+            var results = new HashSet<Dictionary<string, int>>();
+            var line = new Dictionary<string, int>();
+
+            var challengeRatingsList = Constants.ChallengeRatings.Keys.ToList();
+
+            while (!done)
+            {
+                if (!line.ContainsKey(currentCR.cr))
+                    line.Add(currentCR.cr, currentCR.quantity);
+
+                for (int i = challengeRatingsList.IndexOf(currentCR.cr) + 1; i < 32; i++)
+                {
+                    var challengeRating = challengeRatingsList[i];
+
+                    if (line.ContainsKey(challengeRating))
+                    {
+                        line[challengeRating] = i <= iterationIndex ? iterations : iterations - 1;
+                        results.Add(new Dictionary<string, int>(line));
+
+                        if (line.Values.Sum() == (line.Count - 1) * iterations + currentCR.quantity)
+                        {
+                            iterations++;
+                        }
+
+                        continue;
+                    }
+
+                    // Add for the first time
+                    line.Add(challengeRating, iterations - 1);
+                }
+
+                // Add to the list of permutations
+                results.Add(new Dictionary<string, int>(line));
+
+                // increment
+                iterationIndex++;
+
+                done = results.Last().All(q => q.Value == 12 || q.Key == currentCR.cr);
+            }
+
+            return new HashSet<string>(results.Select(dict => Stringified(dict)));
+        }
+
+        private string Stringified(Dictionary<string, int> value) => string.Join(' ', value.Select(kvp => $"{kvp.Key} {kvp.Value}"));
 
         private decimal Multiplier(int numberOfMonsters)
         {
             switch (numberOfMonsters)
             {
-                case int i when (numberOfMonsters == 1):
+                case int i when(numberOfMonsters == 1):
                     return 1m;
-                case int i when (numberOfMonsters == 2):
+                case int i when(numberOfMonsters == 2):
                     return 1.5m;
-                case int i when (numberOfMonsters >= 3 && numberOfMonsters <= 6):
+                case int i when(numberOfMonsters >= 3 && numberOfMonsters <= 6):
                     return 2m;
-                case int i when (numberOfMonsters >= 7 && numberOfMonsters <= 10):
+                case int i when(numberOfMonsters >= 7 && numberOfMonsters <= 10):
                     return 2.5m;
-                case int i when (numberOfMonsters >= 11 && numberOfMonsters <= 14):
+                case int i when(numberOfMonsters >= 11 && numberOfMonsters <= 14):
                     return 3m;
-                case int i when (numberOfMonsters >= 15):
+                case int i when(numberOfMonsters >= 15):
                     return 4m;
                 default:
                     return 1m;
             }
         }
-
-        private readonly Dictionary<int, ExperienceThreshold> RankMapping = new Dictionary<int, ExperienceThreshold>()
-        {
-            { 2, new ExperienceThreshold(150, 200, 300, 600) },
-            { 3, new ExperienceThreshold(225, 400, 800, 3_600) },
-            { 4, new ExperienceThreshold(375, 500, 800, 3_600) },
-            { 5, new ExperienceThreshold(750, 1_100, 3600, 8600) },
-            { 6, new ExperienceThreshold(900, 1_400, 3600, 8600) },
-            { 7, new ExperienceThreshold(1_100, 1_700, 3600, 8600) },
-            { 8, new ExperienceThreshold(1_400, 2_100, 3600, 8600) },
-            { 9, new ExperienceThreshold(1_600, 2_400, 8_600, 20_800) },
-            { 10, new ExperienceThreshold(1_900, 2_800, 8_600, 20_800) },
-            { 11, new ExperienceThreshold(2_400, 3_600, 8_600, 20_800) },
-            { 12, new ExperienceThreshold(3_000, 4_500, 8_600, 20_800) },
-            { 13, new ExperienceThreshold(3_400, 5_100, 8_600, 20_800) },
-            { 14, new ExperienceThreshold(3_800, 5_700, 20_800, 38_400) },
-            { 15, new ExperienceThreshold(4_300, 6_400, 20_800, 38_400) },
-            { 16, new ExperienceThreshold(4_800, 7_200, 20_800, 38_400) },
-            { 17, new ExperienceThreshold(5_900, 8_800, 38_400, 56_200) },
-            { 18, new ExperienceThreshold(6_300, 9_500, 38_400, 56_200) },
-            { 19, new ExperienceThreshold(7_300, 10_900, 38_400, 56_200) },
-            { 20, new ExperienceThreshold(8_500, 12_700, 56_000, 92_000) }
-        };
 
         public decimal EvaluateAXP(Dictionary<string, int> monsters)
         {
@@ -181,7 +230,7 @@ namespace src
 
             foreach (var monster in monsters)
             {
-                total += monster.Value * challengeRatings[monster.Key];
+                total += monster.Value * Constants.ChallengeRatings[monster.Key];
             }
 
             return total * Multiplier(monsters.Values.Sum());

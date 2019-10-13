@@ -1,14 +1,13 @@
 using System.Collections.Generic;
-using System.Linq;
 using NUnit.Framework;
 using src;
 
 namespace gm_monster_test
 {
-    public class CRCalculatorTest
+    internal class CRCalculatorTest
     {
         [Test]
-        public void GivenFiveLevelFivePlayersWithDeadlyRank_WhenInvoked_ThenGeneratesAllPossibleChallengeRatingOutcomes()
+        internal void GivenFiveLevelFivePlayersWithDeadlyRank_WhenInvoked_ThenGeneratesAllPossibleChallengeRatingOutcomes()
         {
             // Arrange
             var players = new List<int>() { 5, 5, 5, 5, 5 };
@@ -18,7 +17,6 @@ namespace gm_monster_test
 
             // Ensure that the CR rating is ordered before adding it to the structure
 
-
             // Act
             var result = challengeRatingCalculator.GenerateChallengeRatingOutcomes();
 
@@ -27,7 +25,7 @@ namespace gm_monster_test
         }
 
         [Test]
-        public void GivenFivePlayers_WhenCalculated_ReturnsExpectedAXP()
+        internal void GivenFivePlayers_WhenCalculated_ReturnsExpectedAXP()
         {
             // Arrange
             var players = new List<int>() { 5, 5, 5, 5 };
