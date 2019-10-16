@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using NUnit.Framework;
 using src;
 
@@ -61,6 +62,27 @@ namespace gm_monster_test
             Assert.AreEqual(expectedSevenToTen, resultSevenToTen, "seven to ten monster range multiplier invalid calculation");
             Assert.AreEqual(expectedElevenToFourteen, resultElevenToFourteen, "eleven to fourteen monster range multiplier invalid calculation");
             Assert.AreEqual(expectedFifteenOrMore, resultFifteenOrMore, "fifteen or more monster range multiplier invalid calculation");
+        }
+
+        [Test]
+        public void GivenValidNumberOfPlayers_WhenEvaluated_ReturnsValidEncountersFilteredByNumberOfPlayers()
+        {
+            // Arrange
+            var players = new List<int>() { 5, 5, 5, 5 };
+            var challengeRatingCalculator = new ChallengeRatingCalculator(Difficulty.Deadly, players);
+
+            HashSet<string> testMatchups = new HashSet<string>()
+            {
+                "CR4 3",
+                "CR1/4 20"
+            };
+
+            // Act
+            var result = challengeRatingCalculator.TransformIntoValidEncounters(3600, 8400, testMatchups).ToList();
+
+            // Assert
+            Assert.IsTrue(result.Count() == 1);
+            Assert.IsTrue(result.Any(encounter => encounter.Monsters.ContainsKey("CR4") && encounter.Monsters["CR4"] == 3));
         }
     }
 }
