@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Linq;
+using gm_monster;
 using NUnit.Framework;
 using src;
 
@@ -10,12 +12,18 @@ namespace gm_monster_test
         public void GivenFiveLevelFivePlayersWithDeadlyRank_WhenInvoked_ThenGeneratesAllPossibleChallengeRatingOutcomes()
         {
             // Arrange
-            var players = new List<int>() { 5, 5, 5, 5, 5 };
-            var challengeRatingCalculator = new ChallengeRatingCalculator(Difficulty.Deadly, players);
+
+            var encounterRequest = new EncounterGenerationRequest()
+            {
+                Players = new List<int>() { 5, 5, 5, 5 },
+                Difficulty = Difficulty.Deadly,
+                Rank = 'D',
+                MaximumAdjustedExperience = 8400,
+                MinimumAdjustedExperience = 3600
+            };
+            var challengeRatingCalculator = new ChallengeRatingCalculator(encounterRequest);
 
             HashSet<KeyValuePair<string, int>> test = new HashSet<KeyValuePair<string, int>>() { new KeyValuePair<string, int>("CR2", 3) };
-
-            // Ensure that the CR rating is ordered before adding it to the structure
 
             // Act
             var result = challengeRatingCalculator.GenerateChallengeRatingOutcomes();
@@ -28,8 +36,16 @@ namespace gm_monster_test
         public void GivenFivePlayers_WhenCalculated_ReturnsExpectedAXP()
         {
             // Arrange
-            var players = new List<int>() { 5, 5, 5, 5 };
-            var challengeRatingCalculator = new ChallengeRatingCalculator(Difficulty.Deadly, players);
+
+            var encounterRequest = new EncounterGenerationRequest()
+            {
+                Players = new List<int>() { 5, 5, 5, 5 },
+                Difficulty = Difficulty.Deadly,
+                Rank = 'D',
+                MaximumAdjustedExperience = 8400,
+                MinimumAdjustedExperience = 3600
+            };
+            var challengeRatingCalculator = new ChallengeRatingCalculator(encounterRequest);
 
             // CR = Key, Quantity = value
             var inputOne = new Dictionary<string, int>() { { "CR1", 1 } };
@@ -61,6 +77,34 @@ namespace gm_monster_test
             Assert.AreEqual(expectedSevenToTen, resultSevenToTen, "seven to ten monster range multiplier invalid calculation");
             Assert.AreEqual(expectedElevenToFourteen, resultElevenToFourteen, "eleven to fourteen monster range multiplier invalid calculation");
             Assert.AreEqual(expectedFifteenOrMore, resultFifteenOrMore, "fifteen or more monster range multiplier invalid calculation");
+        }
+
+        [Test]
+        public void GivenValidNumberOfPlayers_WhenEvaluated_ReturnsValidEncountersFilteredByNumberOfPlayers()
+        {
+            // Arrange
+            var encounterRequest = new EncounterGenerationRequest()
+            {
+                Players = new List<int>() { 5, 5, 5, 5 },
+                Difficulty = Difficulty.Deadly,
+                Rank = 'D',
+                MaximumAdjustedExperience = 8400,
+                MinimumAdjustedExperience = 3600
+            };
+            var challengeRatingCalculator = new ChallengeRatingCalculator(encounterRequest);
+
+            HashSet<string> testMatchups = new HashSet<string>()
+            {
+                "CR4 3",
+                "CR1/4 20"
+            };
+
+            // Act
+            var result = challengeRatingCalculator.TransformIntoValidEncounters(testMatchups).ToList();
+
+            // Assert
+            Assert.IsTrue(result.Count() == 1);
+            Assert.IsTrue(result.Any(encounter => encounter.Monsters.ContainsKey("CR4") && encounter.Monsters["CR4"] == 3));
         }
     }
 }

@@ -11,9 +11,7 @@ namespace gm_monster
         static void Main(string[] args)
         {
 
-            var players = new List<int>();
-            Difficulty difficulty = Difficulty.Hard;
-            char rank = 'F';
+            var encounterGenerationRequest = new EncounterGenerationRequest();
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -30,18 +28,46 @@ namespace gm_monster
 
                         return;
                     }
-                    players.Add(playerLevel);
+                    encounterGenerationRequest.Players.Add(playerLevel);
                     i++;
                 }
                 else if (args[i].ToLower() == "-d")
                 {
-                    difficulty = args[i + 1].ToLower() == "hard" ? Difficulty.Hard : Difficulty.Deadly;
+                    encounterGenerationRequest.Difficulty = args[i + 1].ToLower() == "hard" ? Difficulty.Hard : Difficulty.Deadly;
                     i++;
                 }
                 else if (args[i].ToLower() == "-r")
                 {
-                    rank = args[i + 1][0];
+                    encounterGenerationRequest.Rank = args[i + 1][0];
                     i++;
+                }
+                else if (args[i].ToLower() == "-min")
+                {
+                    if (int.TryParse(args[i + 1], out var minimum))
+                    {
+                        encounterGenerationRequest.MinimumAdjustedExperience = minimum;
+                        i++;
+                        continue;
+                    }
+
+                    using (TextWriter writer = new StreamWriter(Console.OpenStandardError()))
+                    {
+                        writer.WriteLine($"You must provide a valid minimum adjusted experience value");
+                    }
+                }
+                else if (args[i].ToLower() == "-max")
+                {
+                    if (int.TryParse(args[i + 1], out var maximum))
+                    {
+                        encounterGenerationRequest.MaximumAdjustedExperience = maximum;
+                        i++;
+                        continue;
+                    }
+
+                    using (TextWriter writer = new StreamWriter(Console.OpenStandardError()))
+                    {
+                        writer.WriteLine($"You must provide a valid maximum adjusted experience value");
+                    }
                 }
                 else
                 {
@@ -53,7 +79,7 @@ namespace gm_monster
                 }
             }
 
-            if (players.Count == 0)
+            if (encounterGenerationRequest.Players.Count == 0)
             {
                 using (TextWriter writer = new StreamWriter(Console.OpenStandardError()))
                 {
@@ -65,9 +91,9 @@ namespace gm_monster
 
             Console.WriteLine("Congrats, you managed not to screw everything up so far...");
             Console.WriteLine("Here's what you entered, double check it: ");
-            Console.WriteLine($"Difficulty: {(difficulty == Difficulty.Hard ? "Hard" : "Deadly")}");
-            Console.WriteLine($"Rank: {rank}");
-            Console.WriteLine($"Number of players: {players.Count} ({string.Join(' ', players.Select(p => $"Lv{p}"))})");
+            Console.WriteLine($"Difficulty: {(encounterGenerationRequest.Difficulty == Difficulty.Hard ? "Hard" : "Deadly")}");
+            Console.WriteLine($"Rank: {encounterGenerationRequest.Rank}");
+            Console.WriteLine($"Number of players: {encounterGenerationRequest.Players.Count} ({string.Join(' ', encounterGenerationRequest.Players.Select(p => $"Lv{p}"))})");
             Console.WriteLine("Press any key to continue...or press N to cancel");
             var moveForward = false;
 #if RELEASE
@@ -85,7 +111,7 @@ namespace gm_monster
             {
                 if (moveForward)
                 {
-                    var challengeRatingCalculator = new ChallengeRatingCalculator(difficulty, players, rank);
+                    var challengeRatingCalculator = new ChallengeRatingCalculator(encounterGenerationRequest);
                     var result = challengeRatingCalculator.GenerateChallengeRatingOutcomes();
 
                     if (result)

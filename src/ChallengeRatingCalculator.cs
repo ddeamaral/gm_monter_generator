@@ -3,38 +3,30 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using gm_monster;
 
 namespace src
 {
-    struct Challenge
-    {
-        internal string cr;
-
-        internal int quantity;
-
-        public override string ToString() => $"{cr} {quantity}";
-    }
-
-    struct Encounter
-    {
-        internal Dictionary<string, int> Monsters;
-
-        internal decimal AdjustedExperience;
-    }
 
     public class ChallengeRatingCalculator
     {
-        public ChallengeRatingCalculator(Difficulty difficulty, List<int> players, char Rank = 'F')
+        public ChallengeRatingCalculator(EncounterGenerationRequest request)
         {
-            if (players is null || players.Count <= 0)
+            if (request is null || request.Players is null || request.Players.Count <= 0)
                 throw new ArgumentOutOfRangeException("You must have at least 1 player");
 
-            this.Difficulty = difficulty;
-            this.Players = players;
-            this.AssumedPartyRank = DeterminePartyRank(Rank);
+            this.Difficulty = request.Difficulty;
+            this.Players = request.Players;
+            this.AssumedPartyRank = DeterminePartyRank(request.Rank);
+            this.MaximumMonsters = request.Players.Count * 2;
+            this.EncounterGenerationRequest = request;
         }
 
         private readonly int AssumedPartyRank;
+
+        private readonly int MaximumMonsters;
+
+        private readonly EncounterGenerationRequest EncounterGenerationRequest;
 
         private int DeterminePartyRank(char rank)
         {
@@ -70,6 +62,12 @@ namespace src
                 .Select(player => Difficulty == Difficulty.Deadly ? Constants.RankMapping[player].Deadly : Constants.RankMapping[player].Hard)
                 .Sum();
 
+            if (EncounterGenerationRequest.MaximumAdjustedExperience > 0 && EncounterGenerationRequest.MinimumAdjustedExperience > 0)
+            {
+                rankMaximum = EncounterGenerationRequest.MaximumAdjustedExperience;
+                minimumDifficultyExperience = EncounterGenerationRequest.MinimumAdjustedExperience;
+            }
+
             Console.WriteLine("Calculated values for supplied player count:");
             Console.WriteLine($"Adjusted Experience Range: ({minimumDifficultyExperience} adj xp) - ({rankMaximum} adj xp)");
 
@@ -83,18 +81,30 @@ namespace src
             // Get all possible combinations
             var monsterMatchupPermutations = FetchAllStringifiedPermutations();
 
+            var validEncounters = TransformIntoValidEncounters(monsterMatchupPermutations);
+
+            WriteMacroScript(validEncounters);
+        }
+
+        public IEnumerable<Encounter> TransformIntoValidEncounters(HashSet<string> monsterMatchupPermutations)
+        {
             // Mutate into monster dictionaries
             var encounters = TransmogrifyIntoEncounters(monsterMatchupPermutations);
 
             // run them all through the adjxp calculator
-            var validEncounters = encounters
+            return encounters
                 .Select(encounter => new Encounter { Monsters = encounter, AdjustedExperience = EvaluateAXP(encounter) })
-                .Where(encounter => encounter.Monsters.Values.Sum() <= 12 && encounter.AdjustedExperience >= minimumAdjustedExperience && encounter.AdjustedExperience <= maximumAdjustedExperience);
+                .Where(encounter => encounter.Monsters.Values.Sum() <= MaximumMonsters
+                && encounter.AdjustedExperience >= EncounterGenerationRequest.MinimumAdjustedExperience
+                && encounter.AdjustedExperience <= EncounterGenerationRequest.MaximumAdjustedExperience);
+        }
 
+        private void WriteMacroScript(IEnumerable<Encounter> validEncounters)
+        {
             // format strings
             var output = GenerateMacroScript(validEncounters.OrderBy(encounter => encounter.AdjustedExperience).ToArray());
 
-            using(var streamWriter = new StreamWriter(Constants.OutputPath("macro.txt")))
+            using (var streamWriter = new StreamWriter(Constants.OutputPath("macro.txt")))
             {
                 streamWriter.Write(output);
             }
@@ -107,7 +117,7 @@ namespace src
 
             for (int i = 0; i < validEncounters.Length; i++)
             {
-                macroText.AppendLine($"!import-table-item --DylansIncredibleMonsterGenerator --ADJXP: {validEncounters[i].AdjustedExperience} Monsters:{string.Join(' ', validEncounters[i].Monsters.Where(m => m.Value > 0).Select(m => $"{m.Key}x{Math.Floor((decimal) m.Value)}"))} --1 --");
+                macroText.AppendLine($"!import-table-item --DylansIncredibleMonsterGenerator --AXP: {validEncounters[i].AdjustedExperience} Monsters:{string.Join(' ', validEncounters[i].Monsters.Where(m => m.Value > 0).Select(m => $"{m.Key}x{Math.Floor((decimal)m.Value)}"))} --1 --");
             }
 
             return macroText.ToString();
@@ -195,7 +205,7 @@ namespace src
                 // increment
                 iterationIndex++;
 
-                done = results.Last().All(q => q.Value == 12 || q.Key == currentCR.cr);
+                done = results.Last().All(q => q.Value == MaximumMonsters || q.Key == currentCR.cr);
             }
 
             return new HashSet<string>(results.Select(dict => Stringified(dict)));
@@ -207,17 +217,17 @@ namespace src
         {
             switch (numberOfMonsters)
             {
-                case int i when(numberOfMonsters == 1):
+                case int i when (numberOfMonsters == 1):
                     return 1m;
-                case int i when(numberOfMonsters == 2):
+                case int i when (numberOfMonsters == 2):
                     return 1.5m;
-                case int i when(numberOfMonsters >= 3 && numberOfMonsters <= 6):
+                case int i when (numberOfMonsters >= 3 && numberOfMonsters <= 6):
                     return 2m;
-                case int i when(numberOfMonsters >= 7 && numberOfMonsters <= 10):
+                case int i when (numberOfMonsters >= 7 && numberOfMonsters <= 10):
                     return 2.5m;
-                case int i when(numberOfMonsters >= 11 && numberOfMonsters <= 14):
+                case int i when (numberOfMonsters >= 11 && numberOfMonsters <= 14):
                     return 3m;
-                case int i when(numberOfMonsters >= 15):
+                case int i when (numberOfMonsters >= 15):
                     return 4m;
                 default:
                     return 1m;
