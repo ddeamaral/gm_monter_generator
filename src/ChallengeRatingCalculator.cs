@@ -3,41 +3,30 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using gm_monster;
 
 namespace src
 {
-    struct Challenge
-    {
-        internal string cr;
-
-        internal int quantity;
-
-        public override string ToString() => $"{cr} {quantity}";
-    }
-
-    public struct Encounter
-    {
-        public Dictionary<string, int> Monsters;
-
-        public decimal AdjustedExperience;
-    }
 
     public class ChallengeRatingCalculator
     {
-        public ChallengeRatingCalculator(Difficulty difficulty, List<int> players, char Rank = 'F')
+        public ChallengeRatingCalculator(EncounterGenerationRequest request)
         {
-            if (players is null || players.Count <= 0)
+            if (request is null || request.Players is null || request.Players.Count <= 0)
                 throw new ArgumentOutOfRangeException("You must have at least 1 player");
 
-            this.Difficulty = difficulty;
-            this.Players = players;
-            this.AssumedPartyRank = DeterminePartyRank(Rank);
-            this.MaximumMonsters = players.Count * 2;
+            this.Difficulty = request.Difficulty;
+            this.Players = request.Players;
+            this.AssumedPartyRank = DeterminePartyRank(request.Rank);
+            this.MaximumMonsters = request.Players.Count * 2;
+            this.EncounterGenerationRequest = request;
         }
 
         private readonly int AssumedPartyRank;
 
         private readonly int MaximumMonsters;
+
+        private readonly EncounterGenerationRequest EncounterGenerationRequest;
 
         private int DeterminePartyRank(char rank)
         {
@@ -73,6 +62,12 @@ namespace src
                 .Select(player => Difficulty == Difficulty.Deadly ? Constants.RankMapping[player].Deadly : Constants.RankMapping[player].Hard)
                 .Sum();
 
+            if (EncounterGenerationRequest.MaximumAdjustedExperience > 0 && EncounterGenerationRequest.MinimumAdjustedExperience > 0)
+            {
+                rankMaximum = EncounterGenerationRequest.MaximumAdjustedExperience;
+                minimumDifficultyExperience = EncounterGenerationRequest.MinimumAdjustedExperience;
+            }
+
             Console.WriteLine("Calculated values for supplied player count:");
             Console.WriteLine($"Adjusted Experience Range: ({minimumDifficultyExperience} adj xp) - ({rankMaximum} adj xp)");
 
@@ -86,12 +81,12 @@ namespace src
             // Get all possible combinations
             var monsterMatchupPermutations = FetchAllStringifiedPermutations();
 
-            var validEncounters = TransformIntoValidEncounters(minimumAdjustedExperience, maximumAdjustedExperience, monsterMatchupPermutations);
+            var validEncounters = TransformIntoValidEncounters(monsterMatchupPermutations);
 
             WriteMacroScript(validEncounters);
         }
 
-        public IEnumerable<Encounter> TransformIntoValidEncounters(int minimumAdjustedExperience, int maximumAdjustedExperience, HashSet<string> monsterMatchupPermutations)
+        public IEnumerable<Encounter> TransformIntoValidEncounters(HashSet<string> monsterMatchupPermutations)
         {
             // Mutate into monster dictionaries
             var encounters = TransmogrifyIntoEncounters(monsterMatchupPermutations);
@@ -99,8 +94,9 @@ namespace src
             // run them all through the adjxp calculator
             return encounters
                 .Select(encounter => new Encounter { Monsters = encounter, AdjustedExperience = EvaluateAXP(encounter) })
-                .Where(encounter => encounter.Monsters.Values.Sum() <= MaximumMonsters && encounter.AdjustedExperience >= minimumAdjustedExperience && encounter.AdjustedExperience <= maximumAdjustedExperience);
-
+                .Where(encounter => encounter.Monsters.Values.Sum() <= MaximumMonsters
+                && encounter.AdjustedExperience >= EncounterGenerationRequest.MinimumAdjustedExperience
+                && encounter.AdjustedExperience <= EncounterGenerationRequest.MaximumAdjustedExperience);
         }
 
         private void WriteMacroScript(IEnumerable<Encounter> validEncounters)
