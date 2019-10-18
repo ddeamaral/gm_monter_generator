@@ -62,11 +62,10 @@ namespace src
                 .Select(player => Difficulty == Difficulty.Deadly ? Constants.RankMapping[player].Deadly : Constants.RankMapping[player].Hard)
                 .Sum();
 
-            if (EncounterGenerationRequest.MaximumAdjustedExperience > 0 && EncounterGenerationRequest.MinimumAdjustedExperience > 0)
-            {
-                rankMaximum = EncounterGenerationRequest.MaximumAdjustedExperience;
-                minimumDifficultyExperience = EncounterGenerationRequest.MinimumAdjustedExperience;
-            }
+
+            rankMaximum = EncounterGenerationRequest.MaximumAdjustedExperience > 0 ? EncounterGenerationRequest.MaximumAdjustedExperience : Constants.RankMapping[AssumedPartyRank].RankMaxiumumAdjustedExperience; ;
+
+
 
             Console.WriteLine("Calculated values for supplied player count:");
             Console.WriteLine($"Adjusted Experience Range: ({minimumDifficultyExperience} adj xp) - ({rankMaximum} adj xp)");
@@ -81,12 +80,12 @@ namespace src
             // Get all possible combinations
             var monsterMatchupPermutations = FetchAllStringifiedPermutations();
 
-            var validEncounters = TransformIntoValidEncounters(monsterMatchupPermutations);
+            var validEncounters = TransformIntoValidEncounters(monsterMatchupPermutations, minimumAdjustedExperience, maximumAdjustedExperience);
 
             WriteMacroScript(validEncounters);
         }
 
-        public IEnumerable<Encounter> TransformIntoValidEncounters(HashSet<string> monsterMatchupPermutations)
+        public IEnumerable<Encounter> TransformIntoValidEncounters(HashSet<string> monsterMatchupPermutations, decimal minAxp, decimal maxAxp)
         {
             // Mutate into monster dictionaries
             var encounters = TransmogrifyIntoEncounters(monsterMatchupPermutations);
@@ -95,8 +94,8 @@ namespace src
             return encounters
                 .Select(encounter => new Encounter { Monsters = encounter, AdjustedExperience = EvaluateAXP(encounter) })
                 .Where(encounter => encounter.Monsters.Values.Sum() <= MaximumMonsters
-                && encounter.AdjustedExperience >= EncounterGenerationRequest.MinimumAdjustedExperience
-                && encounter.AdjustedExperience <= EncounterGenerationRequest.MaximumAdjustedExperience);
+                && encounter.AdjustedExperience >= minAxp
+                && encounter.AdjustedExperience <= maxAxp);
         }
 
         private void WriteMacroScript(IEnumerable<Encounter> validEncounters)
